@@ -1,0 +1,294 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+using namespace std;
+#include <stdlib.h>
+#include<string.h>
+enum ThdInfo
+{
+	LINK,
+	THREAD
+};
+template<class T>
+struct BinaryTreeThdNode
+{
+	BinaryTreeThdNode(const T& data)
+	: pleft(NULL)
+	, pright(NULL)
+	, pParent(NULL)
+	, _data(data)
+	, leftThd(LINK)
+	, rightThd(LINK)
+	{}
+	BinaryTreeThdNode<T>* pleft; //左孩子
+	BinaryTreeThdNode<T>* pright; //右孩子
+	BinaryTreeThdNode<T>* pParent; //双亲结点
+	T _data;
+    ThdInfo leftThd; //左线索
+	ThdInfo rightThd; //右线索
+};
+template<class T>
+class BinaryTreeThd
+{
+public:
+	BinaryTreeThd()
+		:_pRoot(NULL)
+	{}
+	BinaryTreeThd(T array[], size_t size)
+	{
+		size_t index = 0;
+		_CreateBinaryTree(_pRoot, array, size, index);
+	}
+	void PreOrderThd()
+	{
+		BinaryTreeThdNode<T>* prev = NULL;
+		_PreOrderThd(_pRoot,prev);
+	}
+	void PreOrder()
+	{
+		_PreOrder(_pRoot);
+	}
+	void InOrderThd()
+	{
+		BinaryTreeThdNode<T>* prev = NULL;
+		_InOrderThd(_pRoot,prev);
+	}
+	void InOrder()
+	{
+		_InOrder(_pRoot);
+	}
+	void PostOrderThd()
+	{
+		BinaryTreeThdNode<T>* prev = NULL;
+		_PostOrderThd(_pRoot, prev);
+	}
+	void PostOrder()
+	{
+		_PostOrder(_pRoot);
+	}
+private:
+	//前序遍历
+	void _PreOrder(BinaryTreeThdNode<T>* pRoot)
+	{
+		BinaryTreeThdNode<T>* pCur = pRoot;
+		while (pCur)
+		{
+			//先找最左边孩子并访问路径上所有节点
+			while (pCur->leftThd == LINK)
+			{
+				cout << pCur->_data<< " ";
+				pCur = pCur->pleft;
+			}
+			cout << pCur->_data << " ";
+			//pCur = pCur->pright;
+			//右孩子不存在连续访问后继
+			while (pCur && pCur->rightThd == THREAD)
+			{
+				pCur = pCur->pright;
+				cout << pCur->_data << " ";
+			}
+			if (pCur->leftThd == LINK)
+			{
+				pCur = pCur->pleft;
+			}
+			else
+			{
+				pCur = pCur->pright;
+			}
+		}
+	}
+
+	//中序遍历
+	void _InOrder(BinaryTreeThdNode<T>* pRoot)
+	{
+		BinaryTreeThdNode<T>* pCur = pRoot;
+		while (pCur)
+		{
+			//找最左边的结点
+			while (pCur->leftThd == LINK)
+			{
+				pCur = pCur->pleft;
+			}
+			if (pCur->rightThd == LINK)
+			{
+				cout << pCur->_data << " ";
+			}
+			else
+			{
+				while (pCur && pCur->rightThd == THREAD)
+				{
+					cout << pCur->_data << " ";
+					pCur = pCur->pright;
+				}
+				if (pCur->rightThd == LINK)
+				{
+					cout << pCur->_data << " ";
+				}
+				if (pCur)
+				{
+					pCur = pCur->pright;
+				}
+			}
+		}
+	}
+
+	//后序遍历
+	void _PostOrder(BinaryTreeThdNode<T>*pRoot)
+	{
+		BinaryTreeThdNode<T>* pCur = pRoot;
+		BinaryTreeThdNode<T>* prev = NULL;
+		while (pCur)
+		{
+			//找最左边的结点
+			if (pCur->pleft != prev)
+			{
+				while (pCur->leftThd == LINK)
+				{
+					pCur = pCur->pleft;
+				}
+			}
+			//处理左单支
+			while (pCur && pCur->rightThd == THREAD)
+			{
+				cout << pCur->_data << " ";
+				prev = pCur;
+				pCur = pCur->pright;
+			}
+			//处理根结点
+			if (pCur == pRoot && pCur->pright==prev)
+			{
+				cout << pCur->_data << " ";
+				return;
+			}
+			//处理右单支
+			while (pCur && pCur->pright == prev)
+			{
+				cout << pCur->_data << " ";
+				prev = pCur;
+				pCur = pCur->pParent;
+			}
+			//处理当前节点有右子树的情况
+			if (pCur  && pCur->rightThd == LINK)
+			{
+				pCur = pCur->pright;
+			}
+		}
+	}
+	//前序线索化
+	void _PreOrderThd(BinaryTreeThdNode<T>*pRoot, BinaryTreeThdNode<T>*& prev)
+	{
+		if (pRoot)
+		{
+			//线索化当前结点的左指针域
+			if (pRoot->pleft == NULL)
+			{
+				pRoot->pleft = prev;
+				pRoot->leftThd = THREAD;
+			}
+			//线索化当前结点的前驱结点的右指针域
+			if (prev &&prev->pright == NULL)
+			{
+				prev->pright = pRoot;
+				prev->rightThd = THREAD;
+			}
+			prev = pRoot;
+			//递归线索化左子树
+			if (pRoot->leftThd == LINK)
+			{
+				_PreOrderThd(pRoot->pleft, prev);
+			}
+			//递归线索化右子树
+			if (pRoot->rightThd == LINK)
+			{
+				_PreOrderThd(pRoot->pright, prev);
+			}
+		}
+	}
+
+	//中序线索化
+	void _InOrderThd(BinaryTreeThdNode<T>* pRoot,BinaryTreeThdNode<T>*& prev)
+	{
+		if (pRoot)
+		{
+			_InOrderThd(pRoot->pleft, prev);
+			//线索化当前结点的左指针域
+			if (pRoot->pleft == NULL)
+			{
+				pRoot->pleft = prev;
+				pRoot->leftThd = THREAD;
+			}
+			//线索化当前结点的前驱结点的右指针域
+			if (prev && prev->pright == NULL)
+			{
+				prev->pright = pRoot;
+				prev->rightThd = THREAD;
+			}
+			prev = pRoot;
+			if (pRoot->rightThd == LINK)
+			{
+				_InOrderThd(pRoot->pright, prev);
+			}
+		}	
+	}
+
+     //后序线索化
+	void _PostOrderThd(BinaryTreeThdNode<T>* pRoot, BinaryTreeThdNode<T>*& prev)
+	{
+		if (pRoot)
+		{
+				_PostOrderThd(pRoot->pleft, prev);
+				_PostOrderThd(pRoot->pright, prev);
+				//线索化当前结点的左指针域
+			if (pRoot->pleft == NULL)
+			{
+				pRoot->pleft = prev;
+				pRoot->leftThd = THREAD;
+			}
+			//线索化当前结点的前驱结点的右指针域
+			if (prev && prev->pright == NULL)
+			{
+				prev->pright = pRoot;
+				prev->rightThd = THREAD;
+			}
+			prev = pRoot;
+
+		}
+	}
+
+	//创建二叉树
+	void _CreateBinaryTree(BinaryTreeThdNode<T>*& pRoot,  T array[], size_t size, size_t& index)
+	{
+		if (index < size && array[index] != '#')
+		{
+			pRoot = new BinaryTreeThdNode<T>(array[index]);
+			_CreateBinaryTree(pRoot->pleft, array, size, ++index);
+			if (pRoot->pleft)
+			{
+				pRoot->pleft->pParent = pRoot;
+			}
+			_CreateBinaryTree(pRoot->pright, array, size, ++index);
+			if (pRoot->pright)
+			{
+				pRoot->pright->pParent = pRoot;
+			}
+		}
+	}
+private:
+	BinaryTreeThdNode<T>* _pRoot;
+};
+	void test()
+	{
+		char t[] = {'0','1','3','#','#','4','#','#','2','5'};
+		BinaryTreeThd<char> bt(t,sizeof(t)/sizeof(t[0]));
+		  //bt.PreOrderThd();
+		 // bt.PreOrder();
+		//bt.InOrderThd();
+		//bt.InOrder();
+		bt.PostOrderThd();
+		bt.PostOrder();
+	}
+	int main()
+	{
+		test();
+		system("pause");
+		return 0;
+	}
